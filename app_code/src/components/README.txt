@@ -1,0 +1,1 @@
+This folder contains skeleton of the components, like what they're supossed return, props, etc
