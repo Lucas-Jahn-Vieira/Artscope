@@ -1,6 +1,6 @@
 //creator.tsx
 
-import { Menu, MenuItem} from '@mui/material'
+import { Menu, MenuItem } from '@mui/material'
 
 interface CreatorProps {
     isOpen:boolean,

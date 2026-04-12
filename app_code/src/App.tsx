@@ -1,6 +1,10 @@
 //App.tsx
 
 import { Stage, Layer, Text } from "react-konva";
+import { Box } from "@mui/material";
+
+import LeftBar from "./components/LeftBar";
+
 import Creator from "./components/Creator";
 import useCreator from "./useComponents/useCreator";
 
@@ -10,11 +14,13 @@ function App() {
 
     // MAIN CODE ------------------------------------------------------------------------------------
     return (
-        <>
+        <>  
             <Stage
                 width={window.innerWidth}
                 height={window.innerHeight}
                 onContextMenu={handleContextMenu}
+
+                style={{margin:0, padding:0}}
             >
                 <Layer ref={layer}>
                     <Text
@@ -24,11 +30,15 @@ function App() {
                         draggable={true}
                         text="PRESS RIGHT_MOUSE_BUTTON TO START CREATING"
                         align="center"
-                        offsetX={550}
+                        offsetX={500}
                         offsetY={55}
                     />
                 </Layer>
             </Stage>
+
+            <Box>
+            <LeftBar></LeftBar>
+            </Box>
 
             <Creator
                 isOpen={CreatorOpen}
