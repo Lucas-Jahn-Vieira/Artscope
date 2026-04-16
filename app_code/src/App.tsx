@@ -1,16 +1,18 @@
 //App.tsx
 
 import { Stage, Layer, Text } from "react-konva";
-import { Box } from "@mui/material";
 
 import LeftBar from "./components/LeftBar";
+import useLeftBar from "./useComponents/useLeftBar";
 
 import Creator from "./components/Creator";
 import useCreator from "./useComponents/useCreator";
 
+
 function App() {
     //gets info from useCreator
     const {CreatorOpen, closeCreator, mousePos, handleContextMenu, addText, layer} = useCreator();
+    const {LBaropen, openLBar, closeLBar} = useLeftBar()
 
     // MAIN CODE ------------------------------------------------------------------------------------
     return (
@@ -36,9 +38,11 @@ function App() {
                 </Layer>
             </Stage>
 
-            <Box>
-            <LeftBar></LeftBar>
-            </Box>
+            <LeftBar
+                isOpen={LBaropen}
+                openBar={openLBar}
+                closeBar={closeLBar}
+            />
 
             <Creator
                 isOpen={CreatorOpen}
