@@ -12,7 +12,9 @@ import useCreator from "./useComponents/useCreator";
 function App() {
     //gets info from useCreator
     const {CreatorOpen, closeCreator, mousePos, handleContextMenu, addText, layer} = useCreator();
-    const {LBaropen, openLBar, closeLBar} = useLeftBar()
+    const {LBaropen, openLBar, closeLBar, barAddText, barAddImg, barAddBox} = useLeftBar()
+    
+    // PRÓXIMOS PASSOS NO GEMINI !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     // MAIN CODE ------------------------------------------------------------------------------------
     return (
@@ -42,6 +44,9 @@ function App() {
                 isOpen={LBaropen}
                 openBar={openLBar}
                 closeBar={closeLBar}
+                addText={barAddText}
+                addImage={barAddImg}
+                addBox={barAddBox}
             />
 
             <Creator
