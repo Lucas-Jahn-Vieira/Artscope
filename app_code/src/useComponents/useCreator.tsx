@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import Konva from "konva";
 
 function useCreator() {
-const [CreatorOpen, setCreatorOpen] = useState(false);
+    const [CreatorOpen, setCreatorOpen] = useState(false);
     const [mousePos, getMousePos] = useState({ x: 0.0, y: 0.0 });
     const layer = useRef<Konva.Layer>(null);
 
