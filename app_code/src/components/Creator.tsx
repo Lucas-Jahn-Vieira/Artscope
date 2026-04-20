@@ -1,25 +1,30 @@
-//creator.tsx
+// Creator.tsx
 
-import { Menu, MenuItem } from '@mui/material'
+import { Menu, MenuItem } from '@mui/material';
 
 interface CreatorProps {
-    isOpen:boolean,
-    mousePos: {x:number, y:number},
-    onClose: () => void,
-    addText: () => void,
+    isOpen: boolean;
+    mousePos: { x: number; y: number };
+    onClose: () => void;
+    addText: () => void;
+    addImage: () => void;
+    addBox: () => void;  
 }
 
-function Creator({isOpen, onClose, mousePos, addText}:CreatorProps) {
+function Creator({ isOpen, onClose, mousePos, addText, addImage, addBox }: CreatorProps) {
     return (
         <Menu
             open={isOpen}
             onClose={onClose}
             anchorReference='anchorPosition'
-            anchorPosition={{top:mousePos.y, left:mousePos.x}}
+            anchorPosition={{ top: mousePos.y, left: mousePos.x }}
         >
-            <MenuItem onClick={() => {addText(); onClose();}}>Add Text</MenuItem>
+            {/* We can just pass the functions directly to onClick now */}
+            <MenuItem onClick={addText}>Add Text</MenuItem>
+            <MenuItem onClick={addImage}>Add Image</MenuItem>
+            <MenuItem onClick={addBox}>Add Box</MenuItem>
         </Menu>
-    )
+    );
 }
 
-export default Creator
+export default Creator;

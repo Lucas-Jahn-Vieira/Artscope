@@ -1,4 +1,4 @@
-//LeftBar.tsx
+// LeftBar.tsx
 
 import {
     Button,
@@ -9,56 +9,67 @@ import {
     Drawer,
     Box
 } from "@mui/material";
-
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
+// Defining the props exacty as they are passed from App.tsx
 interface LeftBarProps {
     isOpen: boolean;
     openBar: () => void;
     closeBar: () => void;
-
-    addText:() => void;
-    addImage:() => void;
-    addBox:() => void;
+    addText: () => void;
+    addImage: () => void;
+    addBox: () => void;
 }
 
-interface BarButtonProps {
-    text:string;
-    action:() => void;
-}
-
-const BarButton = ({text, action}:BarButtonProps) => {
-    return(
-        <ListItem>
-            <ListItemButton onClick={action}>
-                <ListItemText primary={text} />
-            </ListItemButton>
-        </ListItem>
-    )
-};
-
-function LeftBar({ isOpen = false, openBar, closeBar, addText, addImage, addBox }: LeftBarProps) {
+export default function LeftBar({ isOpen, openBar, closeBar, addText, addImage, addBox }: LeftBarProps) {
     return (
-        <Box sx={{ position: "fixed", top: 0, bottom: 0, left: 0 }}>
-            <Button
-                variant="outlined"
-                sx={{ backgroundColor: "white", top: "50%" }}
-                onClick={openBar}
-            >
-                <ArrowForwardIosIcon />
-            </Button>
-            <Drawer open={isOpen} onClose={closeBar} slotProps={{paper:{sx:{width:'20%'}}}}>
-                <List>
-                    <ListItem>
-                        <ListItemText primary="Add Elements" />
-                    </ListItem>
-                    <BarButton text='Text' action={addText}/>
-                    <BarButton text='Image' action={addImage}/>
-                    <BarButton text='Box' action={addBox}/>
-                </List>
+        <>
+            {/* This button sits on the left edge of the screen 
+                to open the drawer
+            */}
+
+            {!isOpen && (
+                <Button
+                    onClick={openBar}
+                    variant="outlined"
+                    style={{ 
+                        position: "absolute", 
+                        top: "50%", 
+                        left: 0, 
+                        zIndex: 1000 // Ensures it stays above the Konva Canvas
+                    }}
+                >
+                    <ArrowForwardIosIcon /> {/* icon ">" */}
+                </Button>
+            )}
+
+            <Drawer anchor="left" open={isOpen} onClose={closeBar}>
+                {/* container of the buttons */}
+                <Box sx={{ width: 250 }} role="presentation">
+                    <List>
+                        {/* Add Text Button */}
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={addText}>
+                                <ListItemText primary="Add Text" />
+                            </ListItemButton>
+                        </ListItem>
+
+                        {/* Add Image Button */}
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={addImage}>
+                                <ListItemText primary="Add Image" />
+                            </ListItemButton>
+                        </ListItem>
+
+                        {/* Add Box Button */}
+                        <ListItem disablePadding>
+                            <ListItemButton onClick={addBox}>
+                                <ListItemText primary="Add Box" />
+                            </ListItemButton>
+                        </ListItem>
+                    </List>
+                </Box>
             </Drawer>
-        </Box>
+        </>
     );
 }
-
-export default LeftBar;

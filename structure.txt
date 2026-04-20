@@ -1,0 +1,338 @@
+public
+    PlaceholderImage.jpeg
+src
+    components
+        Creator.tsx
+        LeftBar.tsx
+    useCOmponents
+        useCreator.tsx
+        useLeftBar.tsx
+    
+    App.tsx
+    main.tsx
+
+//creator.tsx
+
+import { Menu, MenuItem } from '@mui/material'
+
+interface CreatorProps {
+    isOpen:boolean,
+    mousePos: {x:number, y:number},
+    onClose: () => void,
+    addText: () => void,
+}
+
+function Creator({isOpen, onClose, mousePos, addText}:CreatorProps) {
+    return (
+        <Menu
+            open={isOpen}
+            onClose={onClose}
+            anchorReference='anchorPosition'
+            anchorPosition={{top:mousePos.y, left:mousePos.x}}
+        >
+            <MenuItem onClick={() => {addText(); onClose();}}>Add Text</MenuItem>
+        </Menu>
+    )
+}
+
+export default Creator
+
+//LeftBar.tsx
+
+import {
+    Button,
+    List,
+    ListItem,
+    ListItemText,
+    ListItemButton,
+    Drawer,
+    Box
+} from "@mui/material";
+
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+
+interface LeftBarProps {
+    isOpen: boolean;
+    openBar: () => void;
+    closeBar: () => void;
+
+    addText:() => void;
+    addImage:() => void;
+    addBox:() => void;
+}
+
+interface BarButtonProps {
+    text:string;
+    action:() => void;
+}
+
+const BarButton = ({text, action}:BarButtonProps) => {
+    return(
+        <ListItem>
+            <ListItemButton onClick={action}>
+                <ListItemText primary={text} />
+            </ListItemButton>
+        </ListItem>
+    )
+};
+
+function LeftBar({ isOpen = false, openBar, closeBar, addText, addImage, addBox }: LeftBarProps) {
+    return (
+        <Box sx={{ position: "fixed", top: 0, bottom: 0, left: 0 }}>
+            <Button
+                variant="outlined"
+                sx={{ backgroundColor: "white", top: "50%" }}
+                onClick={openBar}
+            >
+                <ArrowForwardIosIcon />
+            </Button>
+            <Drawer open={isOpen} onClose={closeBar} slotProps={{paper:{sx:{width:'20%'}}}}>
+                <List>
+                    <ListItem>
+                        <ListItemText primary="Add Elements" />
+                    </ListItem>
+                    <BarButton text='Text' action={addText}/>
+                    <BarButton text='Image' action={addImage}/>
+                    <BarButton text='Box' action={addBox}/>
+                </List>
+            </Drawer>
+        </Box>
+    );
+}
+
+export default LeftBar;
+
+// useCreator.tsx
+
+import { useState, useRef } from "react";
+import Konva from "konva";
+
+function useCreator() {
+    const [CreatorOpen, setCreatorOpen] = useState(false);
+    const [mousePos, getMousePos] = useState({ x: 0.0, y: 0.0 });
+    const layer = useRef<Konva.Layer>(null);
+
+    const handleContextMenu = (e: Konva.KonvaEventObject<PointerEvent>) => {
+        e.evt.preventDefault(); //prevents the default right click menu from appearing
+
+        const mainStage = e.target.getStage(); // gets the stage
+
+        const point = mainStage?.getPointerPosition(); //gets the mouse postion on click
+
+        if (point != null) {
+            getMousePos({ x: point.x, y: point.y }); //sets mouse position
+            setCreatorOpen(true); //opens creator
+        }
+    };
+
+    const closeCreator = () => {
+        setCreatorOpen(false);
+    };
+
+    const addText = () => {
+        if (layer.current != null) {
+            const newText = new Konva.Text({
+                x: mousePos.x,
+                y: mousePos.y,
+                text: "Hello World",
+                fontSize: 20,
+                draggable: true,
+            });
+
+            layer.current.add(newText);
+            layer.current.draw();
+        }
+    };
+
+    return {
+        CreatorOpen,
+        closeCreator,
+        mousePos,
+        handleContextMenu,
+        addText,
+        layer
+    }
+}
+
+export default useCreator
+
+//useLeftBar.tsx
+
+import Konva from "konva";
+import { useState } from "react";
+
+export default function useLeftBar(
+    layerRef: React.RefObject<Konva.Layer | null>,
+) {
+    const [LBaropen, setOpen] = useState(false);
+
+    const openLBar = () => {
+        setOpen(true);
+    };
+    const closeLBar = () => {
+        setOpen(false);
+    };
+
+    const barAddText = () => {
+        const layer = layerRef.current;
+        if (layer == null) {
+            return;
+        }
+
+        const stage = layer.getStage();
+        if (stage == null) {
+            return;
+        }
+
+        const centerX = stage.width() / 2;
+        const centerY = stage.height() / 2;
+
+        const newText = new Konva.Text({
+            x: centerX,
+            y: centerY,
+            text: "New Text",
+            fontSize: 20,
+            draggable: true,
+        });
+
+        layer.add(newText);
+        layer.draw();
+
+        closeLBar();
+    };
+
+    const barAddImg = () => {
+        // async function, so further actions will only ocurr after this one finishes
+        return new Promise<void>((resolve) => {
+            const layer = layerRef.current;
+            if (layer == null) return;
+
+            const stage = layer.getStage();
+            if (stage == null) return;
+
+            const centerX = stage.width() / 2;
+            const centerY = stage.height() / 2;
+
+            const imageObj = new Image();
+            imageObj.src = "/PlaceholderImage.jpg";
+
+            imageObj.onload = () => {
+                const newImage = new Konva.Image({
+                    x: centerX,
+                    y: centerY,
+                    image: imageObj,
+                    draggable: true,
+                    scaleX: 0.3,
+                    scaleY: 0.3,
+                    offsetX: imageObj.width / 2,
+                    offsetY: imageObj.height / 2,
+                });
+
+                layer.add(newImage);
+                layer.draw();
+
+                closeLBar();
+
+                resolve() // indicates that the function has finished
+            };
+        })
+    };
+
+    const barAddBox = () => {
+        closeLBar();
+    };
+
+    return {
+        LBaropen,
+        openLBar,
+        closeLBar,
+        barAddText,
+        barAddImg,
+        barAddBox,
+    };
+}
+
+//App.tsx
+
+import { Stage, Layer, Text } from "react-konva";
+
+import LeftBar from "./components/LeftBar";
+import useLeftBar from "./useComponents/useLeftBar";
+
+import Creator from "./components/Creator";
+import useCreator from "./useComponents/useCreator";
+
+
+function App() {
+    //gets info from useCreator
+    const {CreatorOpen, closeCreator, mousePos, handleContextMenu, addText, layer} = useCreator();
+    // gets the leftBar info, takes the reference to the layer from the useCreator
+    const {LBaropen, openLBar, closeLBar, barAddText, barAddImg, barAddBox} = useLeftBar(layer)
+
+    const ClearIntroduction = () => {
+        const layerNode = layer.current;
+        if (!layerNode) return;
+
+        // if the layer has something other than the introduction, delete the intro
+        const intro = layerNode.findOne('.introduction-text');
+        if (intro) {
+            intro.destroy();
+            layerNode.draw();
+        }
+        
+    };
+
+    // async (action:() => void | Promise<void>) makes a function asyncronal so the await can be used
+    const HandleAction = async (action:() => void | Promise<void>) => {
+        await action();
+        ClearIntroduction();
+    }
+
+    // MAIN CODE ------------------------------------------------------------------------------------
+    return (
+        <>  
+            <Stage
+                width={window.innerWidth}
+                height={window.innerHeight}
+                onContextMenu={handleContextMenu}
+
+                style={{margin:0, padding:0}}
+            >
+                <Layer ref={layer}>
+                    <Text
+                        name='introduction-text'
+                        x={window.innerWidth / 2}
+                        y={window.innerHeight / 2}
+                        fontSize={40}
+                        draggable={true}
+                        text={"PRESS RIGHT_MOUSE_BUTTON\nOR USE THE LEFT BAR TO START CREATING"}
+                        align="center"
+                        offsetX={400}
+                        offsetY={50}
+                        onDragEnd={() => {}} //so a warning doesn't appear when the text is not moved
+                    />
+                </Layer>
+            </Stage>
+
+            <LeftBar
+                isOpen={LBaropen}
+                openBar={openLBar}
+                closeBar={closeLBar}
+                // when giving a action as a parameter make it as an anonymous func
+                // anonymous func = {() => action()}
+                addText={() => HandleAction(barAddText)} 
+                addImage={() => HandleAction(barAddImg)} 
+                addBox={() => HandleAction(barAddBox)}
+            />
+
+            <Creator
+                isOpen={CreatorOpen}
+                onClose={closeCreator}
+                mousePos={mousePos}
+                addText={() => HandleAction(addText)}
+            ></Creator>
+        </>
+    );
+}
+
+export default App;

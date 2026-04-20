@@ -1,11 +1,15 @@
-import { useState, useRef } from "react";
+// useCreator.tsx
+
+import { useState} from "react";
 import Konva from "konva";
 
-function useCreator() {
+import type { StageItem } from "../App";
+
+export default function useCreator(addItem: (item: StageItem) => void) {
     const [CreatorOpen, setCreatorOpen] = useState(false);
     const [mousePos, getMousePos] = useState({ x: 0.0, y: 0.0 });
-    const layer = useRef<Konva.Layer>(null);
 
+    // creates a new menu on the position the user right-clicked
     const handleContextMenu = (e: Konva.KonvaEventObject<PointerEvent>) => {
         e.evt.preventDefault(); //prevents the default right click menu from appearing
 
@@ -23,29 +27,49 @@ function useCreator() {
         setCreatorOpen(false);
     };
 
-    const addText = () => {
-        if (layer.current != null) {
-            const newText = new Konva.Text({
-                x: mousePos.x,
-                y: mousePos.y,
-                text: "Hello World",
-                fontSize: 20,
-                draggable: true,
-            });
-
-            layer.current.add(newText);
-            layer.current.draw();
-        }
+    // add element fucntions----------------
+    
+    const creatorAddText = () => {
+        addItem({
+            id: Date.now().toString(),
+            type: 'text',
+            x: mousePos.x,
+            y: mousePos.y,
+            text: "New Text from Creator"
+        });
+        closeCreator(); // Closes menu after adding
     };
 
+    const creatorAddImage = () => {
+        addItem({
+            id: Date.now().toString(),
+            type: 'image',
+            x: mousePos.x,
+            y: mousePos.y,
+            src: "/PlaceholderImage.jpeg"
+        });
+        closeCreator();
+    };
+
+    const creatorAddBox = () => {
+        addItem({
+            id: Date.now().toString(),
+            type: 'box',
+            x: mousePos.x,
+            y: mousePos.y
+        });
+        closeCreator();
+    };
+
+    // Return everything so App.tsx can use them
     return {
         CreatorOpen,
         closeCreator,
         mousePos,
         handleContextMenu,
-        addText,
-        layer
-    }
+        creatorAddText,
+        creatorAddImage,
+        creatorAddBox
+    };
 }
 
-export default useCreator
