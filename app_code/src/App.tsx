@@ -1,7 +1,7 @@
-//App.tsx
+// App.tsx
 
-import { useState, useEffect } from "react";
-import { Stage, Layer, Text, Rect, Image } from "react-konva";
+import { useState, useEffect, useRef } from "react";
+import { Stage, Layer, Text, Rect, Image, Transformer } from "react-konva";
 
 import LeftBar from "./components/LeftBar";
 import useLeftBar from "./useComponents/useLeftBar";
@@ -10,9 +10,9 @@ import Creator from "./components/Creator";
 import useCreator from "./useComponents/useCreator";
 
 // ============================================================================================= //
+// ======================================= INTERFACES ========================================== //
+// ============================================================================================= //
 
-// creates a type for the items, so no unhandled element can be added
-// exports it so useComponent files can also use this type
 export type ItemType = "text" | "image" | "box";
 
 export interface StageItem {
@@ -20,27 +20,62 @@ export interface StageItem {
     type: ItemType;
     x: number;
     y: number;
-
-    // optional props, used for specific elements
-    text?: string; // for text
-    src?: string; // for images
+    width?: number; 
+    height?: number;
+    fontSize?: number;
+    text?: string; 
+    src?: string; 
 }
 
+// ============================================================================================= //
+// ======================================= MAIN CODE =========================================== //
+// ============================================================================================= //
+
 function App() {
-    // list of all items suposed to be rendered on the page
+    // ----------------- stage code ------------------------------------------------------ //
     const [StageItems, setStageItems] = useState<StageItem[]>([]);
 
-    // function to add a element to the list
     const AddItem = (newItem: StageItem) => {
-        // gets the previous list (...StageItems) and adds one more (newItem)
         setStageItems([...StageItems, newItem]);
     };
 
-    // helper function to add images more easily
+    // ----------------- transformer code ------------------------------------------------ //
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+
+    // FIX 3: Padronizado para trRef
+    const trRef = useRef<any>(null); 
+    // FIX 1: Sintaxe corrigida e inicializada com objeto vazio {}
+    const itemRefs = useRef<{[key:string]:any}>({}); 
+
+    // FIX 2: Corrigido setStageItems, sintaxe do map e adicionado ...newAttributes
+    const updateItem = (id: string, newAttributes: Partial<StageItem>) => {
+        setStageItems((prevItems) => 
+            prevItems.map((item) =>
+                item.id === id ? { ...item, ...newAttributes } : item
+            )
+        );
+    };
+
+    // deselect transformer when clicking on the background
+    const checkDeselect = (e: any) => {
+        const clickedOnEmpty = e.target === e.target.getStage();
+        if (clickedOnEmpty) {
+            setSelectedId(null);
+        }
+    };
+
+    // gets the transformer to the selected item
+    useEffect(() => {
+        if (selectedId && itemRefs.current[selectedId]) {
+            trRef.current.nodes([itemRefs.current[selectedId]]);
+            trRef.current.getLayer().batchDraw();
+        }
+    }, [selectedId, StageItems]);
+
+    // ----------------- helpers code ------------------------------------------------------ //
     const URLImage = ({ item }: { item: StageItem }) => {
         const [image, setImage] = useState<HTMLImageElement | null>(null);
 
-        // creates a JavaScript image, needed for Konva to render it
         useEffect(() => {
             if (item.src) {
                 const img = new window.Image();
@@ -51,25 +86,46 @@ function App() {
             }
         }, [item.src]);
 
-        // Only renders the Image when the HTML image is fully loaded
         if (!image) return null;
 
         return (
             <Image
                 image={image}
+                ref={(node) => { itemRefs.current[item.id] = node; }}
+                onClick={() => setSelectedId(item.id)}
+                onTap={() => setSelectedId(item.id)}
                 x={item.x}
                 y={item.y}
                 draggable
-                width={200} 
-                height={200}
+                // Usa os tamanhos salvos ou um tamanho padrão inicial
+                width={item.width || 200} 
+                height={item.height || 200}
+                onDragEnd={(e) => {
+                    updateItem(item.id, {
+                        x: e.target.x(),
+                        y: e.target.y(),
+                    });
+                }}
+                onTransformEnd={(e) => {
+                    const node = itemRefs.current[item.id];
+                    const scaleX = node.scaleX();
+                    const scaleY = node.scaleY();
+
+                    node.scaleX(1);
+                    node.scaleY(1);
+
+                    updateItem(item.id, {
+                        x: node.x(),
+                        y: node.y(),
+                        width: Math.max(5, node.width() * scaleX),
+                        height: Math.max(5, node.height() * scaleY),
+                    })
+                }}
             />
         );
     };
 
-    // -------- useComponent imports
-    // both get the addItem function, so they dont need to get a layer/stage reference
-
-    //gets the useCreator info
+    // ----------------- hooks calls ------------------------------------------------------ //
     const { 
         CreatorOpen, 
         closeCreator, 
@@ -80,9 +136,7 @@ function App() {
         creatorAddBox 
     } = useCreator(AddItem);
 
-    // gets the leftBar info
-    const { LBaropen, openLBar, closeLBar, barAddText, barAddImg, barAddBox } =
-        useLeftBar(AddItem);
+    const { LBaropen, openLBar, closeLBar, barAddText, barAddImg, barAddBox } = useLeftBar(AddItem);
 
     // PAGE STRUCTURE ================================================================================
 
@@ -92,10 +146,12 @@ function App() {
                 width={window.innerWidth}
                 height={window.innerHeight}
                 onContextMenu={handleContextMenu}
+                // FIX 4: Adicionados eventos para deselecionar ao clicar no fundo
+                onMouseDown={checkDeselect} 
+                onTouchStart={checkDeselect}
                 style={{ margin: 0, padding: 0 }}
             >
                 <Layer>
-                    {/* the introduction text only stays here if the list is empty */}
                     {StageItems.length === 0 && (
                         <Text
                             x={window.innerWidth / 2}
@@ -108,18 +164,48 @@ function App() {
                         />
                     )}
 
-                    {/* reads all the list items and draw them */}
                     {StageItems.map((item) => {
-                        // "===" ensures that they're from the same type
                         if (item.type === "text") {
                             return (
                                 <Text
                                     key={item.id}
+                                    ref={(node) => { itemRefs.current[item.id] = node; }}
+                                    onClick={() => setSelectedId(item.id)}
+                                    onTap={() => setSelectedId(item.id)}
                                     x={item.x}
                                     y={item.y}
                                     text={item.text}
-                                    fontSize={20}
+                                    
+                                    // 1. Agora ele usa a propriedade correta (fontSize)
+                                    fontSize={item.fontSize || 20} 
+                                    
+                                    // 2. Definir o width ajuda o Konva a quebrar o texto em linhas no futuro
+                                    width={item.width} 
+                                    
                                     draggable
+                                    onDragEnd={(e) => {
+                                        updateItem(item.id, {
+                                            x: e.target.x(),
+                                            y: e.target.y(),
+                                        });
+                                    }}
+                                    onTransformEnd={(e) => {
+                                        const node = itemRefs.current[item.id];
+                                        const scaleX = node.scaleX();
+                                        // O scaleY é ignorado em textos na maioria dos apps para não "esticar" a letra feio
+                                        
+                                        // Reseta a escala para o React não bugar
+                                        node.scaleX(1);
+                                        node.scaleY(1);
+
+                                        // 3. O SEGREDO ESTÁ AQUI: Atualizamos a fonte baseada nela mesma multiplicada pela escala
+                                        updateItem(item.id, {
+                                            x: node.x(),
+                                            y: node.y(),
+                                            width: Math.max(5, node.width() * scaleX), // Atualiza a caixa de limite
+                                            fontSize: Math.max(5, node.fontSize() * scaleX), // Atualiza o tamanho da letra
+                                        });
+                                    }}
                                 />
                             );
                         }
@@ -127,22 +213,57 @@ function App() {
                             return (
                                 <Rect
                                     key={item.id}
+                                    ref={(node) => { itemRefs.current[item.id] = node; }}
+                                    onClick={() => setSelectedId(item.id)}
+                                    onTap={() => setSelectedId(item.id)}
                                     x={item.x}
                                     y={item.y}
-                                    width={100}
-                                    height={100}
-                                    fill="lightgray" // Default color
-                                    stroke="black"   // Border
+                                    // Usa os tamanhos do state ou um padrão 100
+                                    width={item.width || 100} 
+                                    height={item.height || 100}
+                                    fill="lightgray" 
+                                    stroke="black"   
                                     draggable
+                                    onDragEnd={(e) => {
+                                        updateItem(item.id, {
+                                            x: e.target.x(),
+                                            y: e.target.y(),
+                                        });
+                                    }}
+                                    onTransformEnd={(e) => {
+                                        const node = itemRefs.current[item.id];
+                                        const scaleX = node.scaleX();
+                                        const scaleY = node.scaleY();
+                                        node.scaleX(1);
+                                        node.scaleY(1);
+                                        updateItem(item.id, {
+                                            x: node.x(),
+                                            y: node.y(),
+                                            width: Math.max(5, node.width() * scaleX),
+                                            height: Math.max(5, node.height() * scaleY),
+                                        });
+                                    }}
                                 />
                             );
                         }
                         if (item.type === "image") {
                             return <URLImage key={item.id} item={item} />;
                         }
-
-                        return null; // Fallback if type is unknown
+                        return null; 
                     })}
+
+                    {/* FIX 5: O Transformer AGORA ESTÁ DENTRO DA <Layer>! */}
+                    {selectedId && (
+                        <Transformer
+                            ref={trRef}
+                            boundBoxFunc={(oldBox, newBox) => {
+                                if (newBox.width < 10 || newBox.height < 10) {
+                                    return oldBox;
+                                }
+                                return newBox;
+                            }}
+                        />
+                    )}
                 </Layer>
             </Stage>
 
@@ -150,21 +271,18 @@ function App() {
                 isOpen={LBaropen}
                 openBar={openLBar}
                 closeBar={closeLBar}
-                // when giving a action as a parameter make it as an anonymous func
-                // anonymous func = {() => action()}
                 addText={barAddText}
                 addImage={barAddImg}
                 addBox={barAddBox}
             />
 
             <Creator
-            isOpen={CreatorOpen}
-            onClose={closeCreator}
-            mousePos={mousePos}
-            // Passing the clean functions straight to the component!
-            addText={creatorAddText}
-            addImage={creatorAddImage}
-            addBox={creatorAddBox}
+                isOpen={CreatorOpen}
+                onClose={closeCreator}
+                mousePos={mousePos}
+                addText={creatorAddText}
+                addImage={creatorAddImage}
+                addBox={creatorAddBox}
             />
         </>
     );

@@ -29,42 +29,49 @@ export default function LeftBar({ isOpen, openBar, closeBar, addText, addImage, 
             */}
 
             {!isOpen && (
-                <Button
-                    onClick={openBar}
-                    variant="outlined"
-                    style={{ 
-                        position: "absolute", 
-                        top: "50%", 
-                        left: 0, 
-                        zIndex: 1000 // Ensures it stays above the Konva Canvas
-                    }}
-                >
-                    <ArrowForwardIosIcon /> {/* icon ">" */}
-                </Button>
+                <Box sx={{backgroundColor:"rgb(77, 91, 120)"}}>
+                    <Button
+                        onClick={openBar}
+                        variant="outlined"
+                        style={{ 
+                            position: "absolute", 
+                            top: "50%", 
+                            left: 0, 
+                            zIndex: 1000 // Ensures it stays above the Konva Canvas
+                        }}
+                    >
+                        <ArrowForwardIosIcon /> {/* icon ">" */}
+                    </Button>
+                </Box>
             )}
 
-            <Drawer anchor="left" open={isOpen} onClose={closeBar}>
+            <Drawer 
+                anchor="left" 
+                open={isOpen} 
+                onClose={closeBar}
+                slotProps={{paper: {sx:{ backgroundColor: "rgb(77, 91, 120)"}}}}
+            >
                 {/* container of the buttons */}
-                <Box sx={{ width: 250 }} role="presentation">
+                <Box sx={{ width: 250, borderRadius: '5px' }} role="presentation">
                     <List>
                         {/* Add Text Button */}
                         <ListItem disablePadding>
                             <ListItemButton onClick={addText}>
-                                <ListItemText primary="Add Text" />
+                                <ListItemText primary="Add Text" sx={{color:'white'}}/>
                             </ListItemButton>
                         </ListItem>
 
                         {/* Add Image Button */}
                         <ListItem disablePadding>
                             <ListItemButton onClick={addImage}>
-                                <ListItemText primary="Add Image" />
+                                <ListItemText primary="Add Image" sx={{color:'white'}}/>
                             </ListItemButton>
                         </ListItem>
 
                         {/* Add Box Button */}
                         <ListItem disablePadding>
                             <ListItemButton onClick={addBox}>
-                                <ListItemText primary="Add Box" />
+                                <ListItemText primary="Add Box" sx={{color:'white'}}/>
                             </ListItemButton>
                         </ListItem>
                     </List>
