@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Stage, Layer, Text, Rect, Image, Transformer } from "react-konva";
+import Konva from 'konva';
 
 import LeftBar from "./components/LeftBar";
 import useLeftBar from "./useComponents/useLeftBar";
@@ -107,7 +108,7 @@ function App() {
                     });
                 }}
                 onTransformEnd={(e) => {
-                    const node = itemRefs.current[item.id];
+                    const node = e.target as Konva.Text;
                     const scaleX = node.scaleX();
                     const scaleY = node.scaleY();
 
@@ -190,7 +191,7 @@ function App() {
                                         });
                                     }}
                                     onTransformEnd={(e) => {
-                                        const node = itemRefs.current[item.id];
+                                        const node = e.target as Konva.Text;
                                         const scaleX = node.scaleX();
                                         // O scaleY é ignorado em textos na maioria dos apps para não "esticar" a letra feio
                                         
@@ -231,7 +232,7 @@ function App() {
                                         });
                                     }}
                                     onTransformEnd={(e) => {
-                                        const node = itemRefs.current[item.id];
+                                        const node = e.target as Konva.Text;
                                         const scaleX = node.scaleX();
                                         const scaleY = node.scaleY();
                                         node.scaleX(1);
