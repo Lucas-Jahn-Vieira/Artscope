@@ -1,6 +1,6 @@
 // App.tsx
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from 'react';
 import { Stage, Layer, Text, Rect, Image, Transformer } from "react-konva";
 import Konva from 'konva';
 
@@ -9,6 +9,8 @@ import useLeftBar from "./useComponents/useLeftBar";
 
 import Creator from "./components/Creator";
 import useCreator from "./useComponents/useCreator";
+
+import useCanvas from './CanvasFeatures';
 
 // ============================================================================================= //
 // ======================================= INTERFACES ========================================== //
@@ -33,47 +35,44 @@ export interface StageItem {
 // ============================================================================================= //
 
 function App() {
-    // ----------------- stage code ------------------------------------------------------ //
-    const [StageItems, setStageItems] = useState<StageItem[]>([]);
+    // Get the Canvas features
+    const {
+        StageItems,
+        selectedId,
+        setSelectedId,
+        editingTextId,
+        setEditingTextId,
+        AddItem,
+        updateItem,
+        checkDeselect
+    } = useCanvas();
 
-    const AddItem = (newItem: StageItem) => {
-        setStageItems([...StageItems, newItem]);
-    };
-
-    // ----------------- transformer code ------------------------------------------------ //
-    const [selectedId, setSelectedId] = useState<string | null>(null);
-
-    // FIX 3: Padronizado para trRef
+    // Refs for Konva
     const trRef = useRef<any>(null); 
-    // FIX 1: Sintaxe corrigida e inicializada com objeto vazio {}
-    const itemRefs = useRef<{[key:string]:any}>({}); 
+    const itemRefs = useRef<{[key:string]:any}>({});
 
-    // FIX 2: Corrigido setStageItems, sintaxe do map e adicionado ...newAttributes
-    const updateItem = (id: string, newAttributes: Partial<StageItem>) => {
-        setStageItems((prevItems) => 
-            prevItems.map((item) =>
-                item.id === id ? { ...item, ...newAttributes } : item
-            )
-        );
-    };
-
-    // deselect transformer when clicking on the background
-    const checkDeselect = (e: any) => {
-        const clickedOnEmpty = e.target === e.target.getStage();
-        if (clickedOnEmpty) {
-            setSelectedId(null);
-        }
-    };
-
-    // gets the transformer to the selected item
+    // RESTORED: Transformer effect! We need this to attach the blue handles to the selected item
     useEffect(() => {
         if (selectedId && itemRefs.current[selectedId]) {
             trRef.current.nodes([itemRefs.current[selectedId]]);
             trRef.current.getLayer().batchDraw();
         }
     }, [selectedId, StageItems]);
+ 
+    // ----------------- hooks calls ------------------------------------------------------ //
+    const { 
+        CreatorOpen, 
+        closeCreator, 
+        mousePos, 
+        handleContextMenu, 
+        creatorAddText, 
+        creatorAddImage, 
+        creatorAddBox 
+    } = useCreator(AddItem);
 
-    // ----------------- helpers code ------------------------------------------------------ //
+    const { LBaropen, openLBar, closeLBar, barAddText, barAddImg, barAddBox } = useLeftBar(AddItem);
+
+     // ----------------- helpers code ------------------------------------------------------ //
     const URLImage = ({ item }: { item: StageItem }) => {
         const [image, setImage] = useState<HTMLImageElement | null>(null);
 
@@ -90,7 +89,7 @@ function App() {
         if (!image) return null;
 
         return (
-            <Image
+            <Image // Using basic konva image to avoid naming conflicts if you imported it above
                 image={image}
                 ref={(node) => { itemRefs.current[item.id] = node; }}
                 onClick={() => setSelectedId(item.id)}
@@ -98,7 +97,6 @@ function App() {
                 x={item.x}
                 y={item.y}
                 draggable
-                // Usa os tamanhos salvos ou um tamanho padrão inicial
                 width={item.width || 200} 
                 height={item.height || 200}
                 onDragEnd={(e) => {
@@ -108,7 +106,8 @@ function App() {
                     });
                 }}
                 onTransformEnd={(e) => {
-                    const node = e.target as Konva.Text;
+                    // FIXED: This is an Image, not a Text
+                    const node = e.target as Konva.Image; 
                     const scaleX = node.scaleX();
                     const scaleY = node.scaleY();
 
@@ -125,19 +124,6 @@ function App() {
             />
         );
     };
-
-    // ----------------- hooks calls ------------------------------------------------------ //
-    const { 
-        CreatorOpen, 
-        closeCreator, 
-        mousePos, 
-        handleContextMenu, 
-        creatorAddText, 
-        creatorAddImage, 
-        creatorAddBox 
-    } = useCreator(AddItem);
-
-    const { LBaropen, openLBar, closeLBar, barAddText, barAddImg, barAddBox } = useLeftBar(AddItem);
 
     // PAGE STRUCTURE ================================================================================
 
@@ -173,6 +159,17 @@ function App() {
                                     ref={(node) => { itemRefs.current[item.id] = node; }}
                                     onClick={() => setSelectedId(item.id)}
                                     onTap={() => setSelectedId(item.id)}
+
+                                    // Trigger edit mode on double click/tap
+                                    onDblClick={() => {
+                                        setEditingTextId(item.id);
+                                        setSelectedId(null); // Hides transformer while editing
+                                    }}
+                                    onDblTap={() => {
+                                        setEditingTextId(item.id);
+                                        setSelectedId(null);
+                                    }}
+
                                     x={item.x}
                                     y={item.y}
                                     text={item.text}
@@ -183,13 +180,17 @@ function App() {
                                     // 2. Definir o width ajuda o Konva a quebrar o texto em linhas no futuro
                                     width={item.width} 
                                     
-                                    draggable
+                                    //Hide the Konva text AND disable dragging when editing
+                                    visible={editingTextId !== item.id}
+                                    draggable={editingTextId !== item.id}
+
                                     onDragEnd={(e) => {
                                         updateItem(item.id, {
                                             x: e.target.x(),
                                             y: e.target.y(),
                                         });
                                     }}
+
                                     onTransformEnd={(e) => {
                                         const node = e.target as Konva.Text;
                                         const scaleX = node.scaleX();
@@ -267,6 +268,51 @@ function App() {
                     )}
                 </Layer>
             </Stage>
+
+            {/* HTML Overlay for Text Editing */}
+            {editingTextId && (
+                (() => {
+                    const editingItem = StageItems.find(item => item.id === editingTextId);
+                    if (!editingItem || editingItem.type !== "text") return null;
+
+                    return (
+                        <textarea
+                            value={editingItem.text}
+                            onChange={(e) => updateItem(editingItem.id, { text: e.target.value })}
+                            
+                            // Finish editing when clicking completely outside the text area
+                            onBlur={() => setEditingTextId(null)}
+                            
+                            onKeyDown={(e) => {
+                                // Pressing 'Enter' finishes editing. 
+                                // Pressing 'Shift + Enter' allows for multiple lines.
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    setEditingTextId(null);
+                                }
+                            }}
+                            style={{
+                                position: 'absolute',
+                                top: editingItem.y,
+                                left: editingItem.x,
+                                fontSize: `${editingItem.fontSize || 20}px`,
+                                width: editingItem.width ? `${editingItem.width}px` : 'auto',
+                                minWidth: '150px',
+                                background: 'transparent',
+                                border: '1px dashed #ccc', // Subtle border to show it's editable
+                                outline: 'none',
+                                resize: 'none',
+                                margin: 0,
+                                padding: 0,
+                                color: 'black',
+                                fontFamily: 'Arial', // Konva's default font
+                                overflow: 'hidden',
+                                zIndex: 100, // Keeps the input above the canvas
+                            }}
+                            autoFocus // Automatically places the cursor inside the text area
+                        />
+                    );
+                })()
+            )}
 
             <LeftBar
                 isOpen={LBaropen}
