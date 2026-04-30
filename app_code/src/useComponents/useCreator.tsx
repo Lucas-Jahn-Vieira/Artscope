@@ -46,7 +46,7 @@ export default function useCreator(addItem: (item: StageItem) => void) {
             type: 'image',
             x: mousePos.x,
             y: mousePos.y,
-            src: "/PlaceholderImage.jpeg"
+            src: "/PlaceholderImage.jpg"
         });
         closeCreator();
     };

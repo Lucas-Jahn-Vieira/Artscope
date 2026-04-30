@@ -1,8 +1,10 @@
 // App.tsx
 
 import { useState, useEffect, useRef } from 'react';
-import { Stage, Layer, Text, Rect, Image, Transformer } from "react-konva";
+import { Stage, Layer, Text, Rect, Transformer } from "react-konva";
 import Konva from 'konva';
+import useCanvas from './CanvasFeatures';
+import AssistImage from './AssitImage';
 
 import LeftBar from "./components/LeftBar";
 import useLeftBar from "./useComponents/useLeftBar";
@@ -10,7 +12,7 @@ import useLeftBar from "./useComponents/useLeftBar";
 import Creator from "./components/Creator";
 import useCreator from "./useComponents/useCreator";
 
-import useCanvas from './CanvasFeatures';
+
 
 // ============================================================================================= //
 // ======================================= INTERFACES ========================================== //
@@ -51,7 +53,7 @@ function App() {
     const trRef = useRef<any>(null); 
     const itemRefs = useRef<{[key:string]:any}>({});
 
-    // RESTORED: Transformer effect! We need this to attach the blue handles to the selected item
+    // Function to attach the blue handles to the selected item
     useEffect(() => {
         if (selectedId && itemRefs.current[selectedId]) {
             trRef.current.nodes([itemRefs.current[selectedId]]);
@@ -72,66 +74,36 @@ function App() {
 
     const { LBaropen, openLBar, closeLBar, barAddText, barAddImg, barAddBox } = useLeftBar(AddItem);
 
-     // ----------------- helpers code ------------------------------------------------------ //
-    const URLImage = ({ item }: { item: StageItem }) => {
-        const [image, setImage] = useState<HTMLImageElement | null>(null);
+    // -- Keep canvas size code ---------------------------------------------------------- //
 
-        useEffect(() => {
-            if (item.src) {
-                const img = new window.Image();
-                img.src = item.src;
-                img.onload = () => {
-                    setImage(img);
-                };
-            }
-        }, [item.src]);
+    const [stageSize, setStageSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+    });
 
-        if (!image) return null;
+    useEffect(() => {
+        const checkSize = () => {
+            setStageSize({
+                width: window.innerWidth,
+                height: window.innerHeight
+            });
+        };
 
-        return (
-            <Image // Using basic konva image to avoid naming conflicts if you imported it above
-                image={image}
-                ref={(node) => { itemRefs.current[item.id] = node; }}
-                onClick={() => setSelectedId(item.id)}
-                onTap={() => setSelectedId(item.id)}
-                x={item.x}
-                y={item.y}
-                draggable
-                width={item.width || 200} 
-                height={item.height || 200}
-                onDragEnd={(e) => {
-                    updateItem(item.id, {
-                        x: e.target.x(),
-                        y: e.target.y(),
-                    });
-                }}
-                onTransformEnd={(e) => {
-                    // FIXED: This is an Image, not a Text
-                    const node = e.target as Konva.Image; 
-                    const scaleX = node.scaleX();
-                    const scaleY = node.scaleY();
+        // Avisa ao navegador para rodar a função 'checkSize' toda vez que a janela mudar de tamanho
+        window.addEventListener("resize", checkSize);
 
-                    node.scaleX(1);
-                    node.scaleY(1);
-
-                    updateItem(item.id, {
-                        x: node.x(),
-                        y: node.y(),
-                        width: Math.max(5, node.width() * scaleX),
-                        height: Math.max(5, node.height() * scaleY),
-                    })
-                }}
-            />
-        );
-    };
+        // Limpa o ouvinte quando o componente for desmontado (boa prática do React)
+        return () => window.removeEventListener("resize", checkSize);
+    }, []);
+        
 
     // PAGE STRUCTURE ================================================================================
 
     return (
         <>
             <Stage
-                width={window.innerWidth}
-                height={window.innerHeight}
+                width={stageSize.width}
+                height={stageSize.height}
                 onContextMenu={handleContextMenu}
                 // FIX 4: Adicionados eventos para deselecionar ao clicar no fundo
                 onMouseDown={checkDeselect} 
@@ -249,7 +221,15 @@ function App() {
                             );
                         }
                         if (item.type === "image") {
-                            return <URLImage key={item.id} item={item} />;
+                            return (
+                                <AssistImage 
+                                    key={item.id} 
+                                    item={item} 
+                                    setSelectedId={setSelectedId}
+                                    updateItem={updateItem}
+                                    itemRefs={itemRefs}
+                                />
+                            );
                         }
                         return null; 
                     })}
