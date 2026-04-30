@@ -163,21 +163,31 @@ function App() {
                                         });
                                     }}
 
-                                    onTransformEnd={(e) => {
+                                    // 1. ADICIONAMOS O onTransform PARA VER AO VIVO
+                                    // Isso faz a quebra de linha acontecer enquanto você arrasta o mouse!
+                                    onTransform={(e) => {
                                         const node = e.target as Konva.Text;
                                         const scaleX = node.scaleX();
-                                        // O scaleY é ignorado em textos na maioria dos apps para não "esticar" a letra feio
                                         
-                                        // Reseta a escala para o React não bugar
-                                        node.scaleX(1);
-                                        node.scaleY(1);
+                                        // Pega a escala que o mouse puxou e converte direto para largura
+                                        node.setAttrs({
+                                            width: Math.max(20, node.width() * scaleX),
+                                            scaleX: 1, // Trava a escala horizontal
+                                            scaleY: 1, // Trava a escala vertical
+                                        });
+                                    }}
 
-                                        // 3. O SEGREDO ESTÁ AQUI: Atualizamos a fonte baseada nela mesma multiplicada pela escala
+                                    // 2. ATUALIZAMOS O onTransformEnd PARA SALVAR
+                                    onTransformEnd={(e) => {
+                                        const node = e.target as Konva.Text;
+                                        
+                                        // Como o onTransform já zerou a escala e mudou o width,
+                                        // nós só precisamos salvar a posição e o width final no estado!
                                         updateItem(item.id, {
                                             x: node.x(),
                                             y: node.y(),
-                                            width: Math.max(5, node.width() * scaleX), // Atualiza a caixa de limite
-                                            fontSize: Math.max(5, node.fontSize() * scaleX), // Atualiza o tamanho da letra
+                                            width: node.width(), 
+                                            // OBS: Removemos a linha do fontSize daqui!
                                         });
                                     }}
                                 />
