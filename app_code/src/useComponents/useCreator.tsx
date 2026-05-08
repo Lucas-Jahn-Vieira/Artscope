@@ -38,15 +38,15 @@ export default function useCreator(addItem: (item: StageItem) => void) {
             text: "New Text from Creator"
         });
         closeCreator(); // Closes menu after adding
-    };
-
+    }; 
+    // ${import.meta.env.BASE_URL} is used to get the url, so it works on GitHup Pages
     const creatorAddImage = () => {
         addItem({
             id: Date.now().toString(),
             type: 'image',
             x: mousePos.x,
             y: mousePos.y,
-            src: "/PlaceholderImage.jpg"
+            src: "${import.meta.env.BASE_URL}PlaceholderImage.jpg"
         });
         closeCreator();
     };
