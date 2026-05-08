@@ -28,7 +28,7 @@ export default function useLeftBar(addItem: (item: StageItem) => void) {
             type: 'image',
             x: window.innerWidth / 2,
             y: window.innerHeight / 2,
-            src: "${import.meta.env.BASE_URL}PlaceholderImage.jpg" 
+            src: `${import.meta.env.BASE_URL}PlaceholderImage.jpg` 
         });
         closeLBar();
     };
