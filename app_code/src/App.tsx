@@ -12,7 +12,7 @@ import useLeftBar from "./useComponents/useLeftBar";
 import Creator from "./components/Creator";
 import useCreator from "./useComponents/useCreator";
 
-
+import ConfigBar from "./components/ConfigBar";
 
 // ============================================================================================= //
 // ======================================= INTERFACES ========================================== //
@@ -116,7 +116,7 @@ function App() {
                             x={window.innerWidth / 2}
                             y={window.innerHeight / 2}
                             fontSize={40}
-                            text={"PRESS RIGHT_MOUSE_BUTTON\nOR USE THE LEFT BAR TO START CREATING"}
+                            text={"PRESS RIGHT MOUSE BUTTON\nOR USE THE LEFT BAR TO START CREATING"}
                             align="center"
                             offsetX={400}
                             offsetY={50}
@@ -320,6 +320,12 @@ function App() {
                 addText={creatorAddText}
                 addImage={creatorAddImage}
                 addBox={creatorAddBox}
+            />
+
+            <ConfigBar 
+                selectedId={selectedId} 
+                StageItems={StageItems} 
+                updateItem={updateItem} 
             />
         </>
     );

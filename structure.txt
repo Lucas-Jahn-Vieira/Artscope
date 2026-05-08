@@ -1,10 +1,32 @@
-=== src/App.tsx ===
+# Estrutura de Arquivos em src/
+
+src/
+├── App.tsx
+├── AssitImage.tsx
+├── CanvasFeatures.tsx
+├── main.tsx
+├── components/
+│   ├── ConfigBar.tsx
+│   ├── Creator.tsx
+│   ├── LeftBar.tsx
+│   └── README.txt
+└── useComponents/
+    ├── README.txt
+    ├── useCreator.tsx
+    └── useLeftBar.tsx
+
+# Conteúdo dos Arquivos .tsx
+
+## App.tsx
+
 ```tsx
 // App.tsx
 
 import { useState, useEffect, useRef } from 'react';
-import { Stage, Layer, Text, Rect, Image, Transformer } from "react-konva";
+import { Stage, Layer, Text, Rect, Transformer } from "react-konva";
 import Konva from 'konva';
+import useCanvas from './CanvasFeatures';
+import AssistImage from './AssitImage';
 
 import LeftBar from "./components/LeftBar";
 import useLeftBar from "./useComponents/useLeftBar";
@@ -12,7 +34,7 @@ import useLeftBar from "./useComponents/useLeftBar";
 import Creator from "./components/Creator";
 import useCreator from "./useComponents/useCreator";
 
-import useCanvas from './CanvasFeatures';
+
 
 // ============================================================================================= //
 // ======================================= INTERFACES ========================================== //
@@ -74,64 +96,6 @@ function App() {
 
     const { LBaropen, openLBar, closeLBar, barAddText, barAddImg, barAddBox } = useLeftBar(AddItem);
 
-     // ----------------- helpers code ------------------------------------------------------ //
-    const URLImage = ({ item }: { item: StageItem }) => {
-        const [image, setImage] = useState<HTMLImageElement | null>(null);
-
-        useEffect(() => {
-            if (item.src) {
-                const img = new window.Image();
-                img.src = item.src;
-                
-                img.onload = () => {
-                    setImage(img);
-                };
-                
-                // NOVO: Se a imagem falhar, ele te avisa no console!
-                img.onerror = () => {
-                    console.error("🚨 O Konva não conseguiu achar a imagem neste caminho:", item.src);
-                };
-            }
-        }, [item.src]);
-
-        if (!image) return null;
-
-        return (
-            <Image // Using basic konva image to avoid naming conflicts if you imported it above
-                image={image}
-                ref={(node) => { itemRefs.current[item.id] = node; }}
-                onClick={() => setSelectedId(item.id)}
-                onTap={() => setSelectedId(item.id)}
-                x={item.x}
-                y={item.y}
-                draggable
-                width={item.width || 200} 
-                height={item.height || 200}
-                onDragEnd={(e) => {
-                    updateItem(item.id, {
-                        x: e.target.x(),
-                        y: e.target.y(),
-                    });
-                }}
-                onTransformEnd={(e) => {
-                    // FIXED: This is an Image, not a Text
-                    const node = e.target as Konva.Image; 
-                    const scaleX = node.scaleX();
-                    const scaleY = node.scaleY();
-
-                    node.scaleX(1);
-                    node.scaleY(1);
-
-                    updateItem(item.id, {
-                        x: node.x(),
-                        y: node.y(),
-                        width: Math.max(5, node.width() * scaleX),
-                        height: Math.max(5, node.height() * scaleY),
-                    })
-                }}
-            />
-        );
-    };
     // -- Keep canvas size code ---------------------------------------------------------- //
 
     const [stageSize, setStageSize] = useState({
@@ -221,21 +185,31 @@ function App() {
                                         });
                                     }}
 
-                                    onTransformEnd={(e) => {
+                                    // 1. ADICIONAMOS O onTransform PARA VER AO VIVO
+                                    // Isso faz a quebra de linha acontecer enquanto você arrasta o mouse!
+                                    onTransform={(e) => {
                                         const node = e.target as Konva.Text;
                                         const scaleX = node.scaleX();
-                                        // O scaleY é ignorado em textos na maioria dos apps para não "esticar" a letra feio
                                         
-                                        // Reseta a escala para o React não bugar
-                                        node.scaleX(1);
-                                        node.scaleY(1);
+                                        // Pega a escala que o mouse puxou e converte direto para largura
+                                        node.setAttrs({
+                                            width: Math.max(20, node.width() * scaleX),
+                                            scaleX: 1, // Trava a escala horizontal
+                                            scaleY: 1, // Trava a escala vertical
+                                        });
+                                    }}
 
-                                        // 3. O SEGREDO ESTÁ AQUI: Atualizamos a fonte baseada nela mesma multiplicada pela escala
+                                    // 2. ATUALIZAMOS O onTransformEnd PARA SALVAR
+                                    onTransformEnd={(e) => {
+                                        const node = e.target as Konva.Text;
+                                        
+                                        // Como o onTransform já zerou a escala e mudou o width,
+                                        // nós só precisamos salvar a posição e o width final no estado!
                                         updateItem(item.id, {
                                             x: node.x(),
                                             y: node.y(),
-                                            width: Math.max(5, node.width() * scaleX), // Atualiza a caixa de limite
-                                            fontSize: Math.max(5, node.fontSize() * scaleX), // Atualiza o tamanho da letra
+                                            width: node.width(), 
+                                            // OBS: Removemos a linha do fontSize daqui!
                                         });
                                     }}
                                 />
@@ -279,7 +253,15 @@ function App() {
                             );
                         }
                         if (item.type === "image") {
-                            return <URLImage key={item.id} item={item} />;
+                            return (
+                                <AssistImage 
+                                    key={item.id} 
+                                    item={item} 
+                                    setSelectedId={setSelectedId}
+                                    updateItem={updateItem}
+                                    itemRefs={itemRefs}
+                                />
+                            );
                         }
                         return null; 
                     })}
@@ -368,7 +350,82 @@ function App() {
 export default App;
 ```
 
-=== src/CanvasFeatures.tsx ===
+## AssitImage.tsx
+
+```tsx
+// src/components/AssistImage.tsx
+
+import { useState, useEffect } from "react";
+import { Image } from "react-konva";
+import Konva from "konva";
+import type { StageItem } from "./App";
+
+interface AssistImageProps {
+    item: StageItem;
+    setSelectedId: (id: string | null) => void;
+    updateItem: (id: string, newAttributes: Partial<StageItem>) => void;
+    itemRefs: React.MutableRefObject<{ [key: string]: any }>;
+}
+
+export default function AssistImage({ item, setSelectedId, updateItem, itemRefs }: AssistImageProps) {
+    const [image, setImage] = useState<HTMLImageElement | null>(null);
+
+    useEffect(() => {
+        if (item.src) {
+            const img = new window.Image();
+            img.src = item.src;
+            
+            img.onload = () => {
+                setImage(img);
+            };
+            
+            img.onerror = () => {
+                console.error("🚨 O Konva não conseguiu achar a imagem neste caminho:", item.src);
+            };
+        }
+    }, [item.src]);
+
+    if (!image) return null;
+
+    return (
+        <Image 
+            image={image}
+            ref={(node) => { itemRefs.current[item.id] = node; }}
+            onClick={() => setSelectedId(item.id)}
+            onTap={() => setSelectedId(item.id)}
+            x={item.x}
+            y={item.y}
+            draggable
+            width={item.width || 200} 
+            height={item.height || 200}
+            onDragEnd={(e) => {
+                updateItem(item.id, {
+                    x: e.target.x(),
+                    y: e.target.y(),
+                });
+            }}
+            onTransformEnd={(e) => {
+                const node = e.target as Konva.Image; 
+                const scaleX = node.scaleX();
+                const scaleY = node.scaleY();
+
+                node.scaleX(1);
+                node.scaleY(1);
+
+                updateItem(item.id, {
+                    x: node.x(),
+                    y: node.y(),
+                    width: Math.max(5, node.width() * scaleX),
+                    height: Math.max(5, node.height() * scaleY),
+                })
+            }}
+        />
+    );
+}
+```
+
+## CanvasFeatures.tsx
+
 ```tsx
 // src/CanvasFeatures.tsx
 
@@ -441,7 +498,22 @@ export default function useCanvas() {
 }
 ```
 
-=== src/components/ConfigBar.tsx ===
+## main.tsx
+
+```tsx
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App.tsx'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App></App>
+  </StrictMode>,
+)
+```
+
+## components/ConfigBar.tsx
+
 ```tsx
 import { }
 
@@ -455,7 +527,8 @@ export default function ConfigBar() {
 }
 ```
 
-=== src/components/Creator.tsx ===
+## components/Creator.tsx
+
 ```tsx
 // Creator.tsx
 
@@ -539,7 +612,8 @@ function Creator({
 export default Creator;
 ```
 
-=== src/components/LeftBar.tsx ===
+## components/LeftBar.tsx
+
 ```tsx
 // LeftBar.tsx
 
@@ -572,17 +646,32 @@ export default function LeftBar({ isOpen, openBar, closeBar, addText, addImage, 
             */}
 
             {!isOpen && (
-                <Box sx={{backgroundColor:"rgb(77, 91, 120)"}}>
+                <Box sx={{
+                    backgroundColor:"rgb(77, 91, 120)",
+
+                    position:'fixed',
+                    top:0,
+                    left:0,
+                    height:'100vh',
+                    width:'5vw',
+
+                    display:'flex',
+                    flexDirection:'column',
+                    justifyContent:'center',
+                    alignContent:'center',
+                    zIndex:100,
+                    boxShadow: "2px 0 8px rgba(0,0,0,0.3)"
+                }}>
                     <Button
                         onClick={openBar}
                         variant="outlined"
-                        style={{ 
+                        style={{
+                            backgroundColor:'rgb(218, 242, 255)',
                             position: "absolute", 
                             top: "50%", 
                             left: 0, 
                             zIndex: 1000 // Ensures it stays above the Konva Canvas
-                        }}
-                    >
+                        }}>
                         <ArrowForwardIosIcon /> {/* icon ">" */}
                     </Button>
                 </Box>
@@ -625,18 +714,8 @@ export default function LeftBar({ isOpen, openBar, closeBar, addText, addImage, 
 }
 ```
 
-=== src/components/README.txt ===
-```
-This folder contains skeleton of the components, like what they're supossed return, props, etc
-```
+## useComponents/useCreator.tsx
 
-=== src/useComponents/README.txt ===
-```
-this folder contains the functions of the components, mostly useStates that would have been needed
-to be on the App.tsx function to work, so they were transferred to here for the sake of readability
-```
-
-=== src/useComponents/useCreator.tsx ===
 ```tsx
 // useCreator.tsx
 
@@ -714,7 +793,8 @@ export default function useCreator(addItem: (item: StageItem) => void) {
 }
 ```
 
-=== src/useComponents/useLeftBar.tsx ===
+## useComponents/useLeftBar.tsx
+
 ```tsx
 // useLeftBar.tsx
 

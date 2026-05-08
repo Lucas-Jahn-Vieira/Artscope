@@ -29,17 +29,32 @@ export default function LeftBar({ isOpen, openBar, closeBar, addText, addImage, 
             */}
 
             {!isOpen && (
-                <Box sx={{backgroundColor:"rgb(77, 91, 120)"}}>
+                <Box sx={{
+                    backgroundColor:"rgb(77, 91, 120)",
+
+                    position:'fixed',
+                    top:0,
+                    left:0,
+                    height:'100vh',
+                    width:'5vw',
+
+                    display:'flex',
+                    flexDirection:'column',
+                    justifyContent:'center',
+                    alignContent:'center',
+                    zIndex:100,
+                    boxShadow: "2px 0 8px rgba(0,0,0,0.3)"
+                }}>
                     <Button
                         onClick={openBar}
                         variant="outlined"
-                        style={{ 
+                        style={{
+                            backgroundColor:'rgb(218, 242, 255)',
                             position: "absolute", 
                             top: "50%", 
                             left: 0, 
                             zIndex: 1000 // Ensures it stays above the Konva Canvas
-                        }}
-                    >
+                        }}>
                         <ArrowForwardIosIcon /> {/* icon ">" */}
                     </Button>
                 </Box>
